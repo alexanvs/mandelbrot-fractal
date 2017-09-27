@@ -1,0 +1,17 @@
+var my_canvas = document.getElementById('canvas');
+var context = my_canvas.getContext("2d");
+
+context.beginPath();
+context.moveTo(120,20);
+context.lineTo(180,20);
+context.stroke();
+context.closePath();
+
+context.beginPath();
+context.arc(150, 100, 35, 0, 2*Math.PI);
+context.fillStyle="blue";
+context.fillRect(10,10,90,95);
+context.fillStyle="black";
+context.font = "20px Garamond";
+context.fillText("Hello!",15,175);
+context.stroke();
