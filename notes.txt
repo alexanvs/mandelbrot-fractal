@@ -1,0 +1,11 @@
+Generated: <div id="percent" style="display:inline">0</div>%<br />
+
+- this thing does not work as expected for displaying image generation progress, 
+it only displays "100%" after generation is finished.
+
+
+this is the way to put style width and height to css (but currently implemented in .js):
+canvas {
+    border: 1px dotted black;
+    width:800px; height:600px
+}

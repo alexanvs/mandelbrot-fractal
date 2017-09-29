@@ -5,9 +5,27 @@
         <link rel='stylesheet' type='text/css' href='stylesheet.css'/>
     </head>
     <body>
-        <canvas id="canvas" width="1000" height="1000">
+        Iterations: <div id="iters" style="display:inline">???</div>&emsp;
+        Real range: <div id="minre" style="display:inline">???</div>...
+                    <div id="maxre" style="display:inline">???</div>&emsp;
+        Imaginary range: <div id="minim" style="display:inline">???</div>...
+                         <div id="maxim" style="display:inline">???</div>
+        <br />
+        Adjust Iterations:
+        <button onclick="updateIterations(200)">200</button>
+        <button onclick="updateIterations(500)">500</button>
+        <button onclick="updateIterations(1000)">1000</button>
+        <button onclick="changeIterations(50)">+50</button>
+        <button onclick="changeIterations(-50)">-50</button>
+        <button onclick="changeIterations(1)">+1</button>
+        <button onclick="changeIterations(-1)">-1</button>
+
+        <button onclick="calculateAndDraw()">Generate!</button><br />
+
+        <canvas id="canvas">
             This text is displayed if your browser does not support HTML5 Canvas.
         </canvas>
         <script type='text/javascript' src='script.js'></script>
+
     </body>
 </html>
