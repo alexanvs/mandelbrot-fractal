@@ -7,20 +7,13 @@
  */
 
 
-var form = document.getElementById("x_form");
-form.addEventListener("submit", function(event) {
-    console.log("Saving value xmax: " + form.elements.xmax.value);
-    console.log("Saving value ymax: " + form.elements.ymax.value);
-    changeXmax(form.elements.xmax.value);
-    changeYmax(form.elements.ymax.value);
-    event.preventDefault();
-});
 
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext("2d");
 
-canvas.addEventListener('mousedown',onDown,false);
-canvas.addEventListener('mouseup',onUp,false);
+canvas.addEventListener('mousedown', onDown, false);
+canvas.addEventListener('mouseup', onUp, false);
+canvas.addEventListener('dblclick', onDblclick, false);
 
 var mouse_x1, mouse_y1, mouse_x2, mouse_y2;
 var subAreaSelected1 = false;
@@ -50,10 +43,8 @@ function writeReIm(){
 }
 writeReIm();
 
-canvas.width = 900;
-canvas.height = 600;
-// document.getElementById("xmax").value = canvas.width;
-// document.getElementById("ymax").value = canvas.height;
+canvas.width = 1200;
+canvas.height = 800;
 
 
 var csw=900;  //canvas style width
@@ -67,32 +58,40 @@ var data = imageData.data;
 
 
 var maxIter = 200;
+var iterChanged = true;
 document.getElementById("iters").innerHTML =  maxIter;
 var paletteR = new Array(1000);
 var paletteG = new Array(1000);
 var paletteB = new Array(1000);
 var drawMap = false;
 
-var myTest=0;
 
-function changeXmax(value){
-    canvas.width = value;
-    myTest = value;
+var form = document.getElementById("xy_form");
+form.elements.xmax.value = canvas.width;
+form.elements.ymax.value = canvas.height;
+form.addEventListener("submit", function(event) {
+    changeXYmax(form.elements.xmax.value, form.elements.ymax.value);
+ //   changeYmax(form.elements.ymax.value);
+    event.preventDefault();
+});
+
+var xMaxRes,yMaxRes;
+function changeXYmax(x,y){
+    xMaxRes = x;
+    yMaxRes = y;
+    canvas.width = x;
+    canvas.height = y;
     imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
-    console.log("value="+ value);
-    console.log("canvas.width=" + canvas.width);
-    console.log("data.length=" + data.length);
-    console.log("myTest=",myTest);
-    return true;
+    console.log("xmax="+ xMaxRes);
+    console.log("ymax="+ yMaxRes);
 }
 
-function changeYmax(value){
-    canvas.height = value;
-    imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    data = imageData.data;
-    return true;
-}
+// function changeYmax(value){
+//     canvas.height = value;
+//     imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+//     data = imageData.data;
+// }
 
 
 function draw(){
@@ -142,7 +141,10 @@ function generatePalette(colors){
 
 
 function calculateImage(){
-    generatePalette(maxIter);
+    if(iterChanged){
+        generatePalette(maxIter);
+        iterChanged = false;
+    }
     for (var i = 0; i < data.length; i += 4) {
         x = (i/4)%canvas.width;
         y = Math.floor((i/4)/canvas.width);
@@ -192,15 +194,22 @@ function calculateImage(){
 }
 
 function updateIterations(i){
-  if (i<1) {
-    maxIter = 1;
-  } else if (i>1000) {
-      maxIter = 1000;
-    } else{
-      maxIter = i;
+    var tmpIter = maxIter;
+    if (i<1) {
+        maxIter = 1;
+    } else if (i>1000) {
+        maxIter = 1000;
+    } else {
+        maxIter = i;
+    }
+    iterChanged = true;
+    if (maxIter == tmpIter){
+        iterChanged = false;
+    } else {
+        iterChanged = true;
     }
     console.log(maxIter);
-  document.getElementById("iters").innerHTML =  maxIter;
+    document.getElementById("iters").innerHTML =  maxIter;
 }
 
 function changeIterations(i){
@@ -250,4 +259,25 @@ function onUp(event){
         writeReIm();
         
     }
+}
+function onDblclick(event){
+    event = event || window.event;
+    var mouse_x = event.pageX - canvas.offsetLeft;
+    var mouse_y = event.pageY - canvas.offsetTop;
+    console.log("dblclick" + mouse_x + mouse_y);
+    var zoom=4;
+    var dRe = maxRe - minRe;
+    var dIm = maxIm - minIm;
+    var dReZoomHalf = 0.5*dRe/zoom;
+    var dImZoomHalf = 0.5*dIm/zoom;
+    var re = minRe+0.5*dRe;
+    var im = minIm+0.5*dIm;
+    var re = minRe + mouse_x / csw * dRe;
+    var im = maxIm - mouse_y / csh * dIm;
+    minRe = re - dReZoomHalf;
+    maxRe = re + dReZoomHalf;
+    minIm = im - dImZoomHalf;
+    maxIm = im + dImZoomHalf;
+    writeReIm();
+    calculateAndDraw();
 }
