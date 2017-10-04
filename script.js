@@ -7,8 +7,25 @@
  */
 
 
+var form = document.getElementById("x_form");
+form.addEventListener("submit", function(event) {
+    console.log("Saving value xmax: " + form.elements.xmax.value);
+    console.log("Saving value ymax: " + form.elements.ymax.value);
+    changeXmax(form.elements.xmax.value);
+    changeYmax(form.elements.ymax.value);
+    event.preventDefault();
+});
+
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext("2d");
+
+canvas.addEventListener('mousedown',onDown,false);
+canvas.addEventListener('mouseup',onUp,false);
+
+var mouse_x1, mouse_y1, mouse_x2, mouse_y2;
+var subAreaSelected1 = false;
+var subAreaSelected2 = false;
+
 
 
 var x,y;
@@ -25,13 +42,20 @@ var maxRe = 0.6;//lookAroundRe+deltaRe/2;
 var minIm = -1.15;//lookAroundIm-deltaIm/2;
 var maxIm = 1.15;//lookAroundIm+deltaIm/2;
 
-document.getElementById("minre").innerHTML =  minRe;
-document.getElementById("maxre").innerHTML =  maxRe;
-document.getElementById("minim").innerHTML =  minIm;
-document.getElementById("maxim").innerHTML =  maxIm;
+function writeReIm(){
+    document.getElementById("minre").innerHTML =  minRe;
+    document.getElementById("maxre").innerHTML =  maxRe;
+    document.getElementById("minim").innerHTML =  minIm;
+    document.getElementById("maxim").innerHTML =  maxIm;
+}
+writeReIm();
 
-canvas.width = 1200;
-canvas.height = 900;
+canvas.width = 900;
+canvas.height = 600;
+// document.getElementById("xmax").value = canvas.width;
+// document.getElementById("ymax").value = canvas.height;
+
+
 var csw=900;  //canvas style width
 var csh=600;  //canvas style height
 canvas.style.width = csw + 'px';
@@ -49,9 +73,27 @@ var paletteG = new Array(1000);
 var paletteB = new Array(1000);
 var drawMap = false;
 
+var myTest=0;
 
-generatePalette(maxIter);
-//calculateAndDraw();
+function changeXmax(value){
+    canvas.width = value;
+    myTest = value;
+    imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    data = imageData.data;
+    console.log("value="+ value);
+    console.log("canvas.width=" + canvas.width);
+    console.log("data.length=" + data.length);
+    console.log("myTest=",myTest);
+    return true;
+}
+
+function changeYmax(value){
+    canvas.height = value;
+    imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    data = imageData.data;
+    return true;
+}
+
 
 function draw(){
     context.putImageData(imageData, 0, 0);
@@ -82,8 +124,8 @@ function adjustCanvasSize(){
 
 
 function approxEq(x,y){
-    var melkFaktorA = (maxRe-minRe)/1000;
-    if (y>x-melkFaktorA && y<x+melkFaktorA){
+    var melkFaktor = (maxRe-minRe)/1000;
+    if (y>x-melkFaktor && y<x+melkFaktor){
         return true;
     }
     return false;
@@ -100,6 +142,7 @@ function generatePalette(colors){
 
 
 function calculateImage(){
+    generatePalette(maxIter);
     for (var i = 0; i < data.length; i += 4) {
         x = (i/4)%canvas.width;
         y = Math.floor((i/4)/canvas.width);
@@ -112,10 +155,10 @@ function calculateImage(){
         var q=t*t + imsq;
         var iter=0;
         if( ( (q * (q + t) < 0.25 * imsq) || ((re+1)*(re+1) + im*im < 0.0625) ) ){
-            // Optimization
+            /* Optimization */
             iter = maxIter-1;
         } else {
-            while(1){ 
+            while(true){ 
                 re1tmp = re1;
                 re1= re1 * re1 - im1 * im1 + re;
                 im1 = 2*re1tmp*im1 + im;
@@ -126,14 +169,18 @@ function calculateImage(){
         }
 
         data[i]     = paletteR[iter] ; // red
-        data[i + 1] = paletteG[iter] ;// green
+        data[i + 1] = paletteG[iter] ; // green
         data[i + 2] = paletteB[iter] ; // blue
         data[i+3]=255;
-       // document.getElementById("percent").innerHTML = Math.round(i/data.length*100);
         
-       // Drawing net map
+       /* Drawing net map */
         if(drawMap){
-            var mF = 1000;
+            var mF = 10;
+            var re_tmp=re;
+            while(true){
+                if((maxRe-minRe)*mF>3)break;
+                mF*=10;
+            }
             if(approxEq(re , Math.round(re*mF)/mF) || approxEq(im, Math.round(im*mF)/mF) ){
                 data[i]=0;
                 data[i+1]=0;
@@ -145,7 +192,6 @@ function calculateImage(){
 }
 
 function updateIterations(i){
-    
   if (i<1) {
     maxIter = 1;
   } else if (i>1000) {
@@ -153,12 +199,55 @@ function updateIterations(i){
     } else{
       maxIter = i;
     }
-    
     console.log(maxIter);
-  generatePalette(maxIter);  
   document.getElementById("iters").innerHTML =  maxIter;
 }
 
 function changeIterations(i){
     updateIterations(maxIter+i);
+}
+
+function onDown(event){
+    event = event || window.event;
+    mouse_x1 = event.pageX - canvas.offsetLeft;
+    mouse_y1 = event.pageY - canvas.offsetTop;
+    console.log(mouse_x1,mouse_y1);
+    subAreaSelected1 = true;
+}
+function onUp(event){
+    event = event || window.event;
+    mouse_x2 = event.pageX - canvas.offsetLeft;
+    mouse_y2 = event.pageY - canvas.offsetTop;
+    var minReNew, maxReNew, minImNew, maxImNew;
+    var minX,maxX,minY,maxY;
+
+    console.log(mouse_x2,mouse_y2);
+    if(subAreaSelected1 && mouse_x1 != mouse_x2 && mouse_y1 != mouse_y2){
+        subAreaSelected2 = true;
+
+        if(mouse_x1<mouse_x2){
+            minX=mouse_x1; maxX = mouse_x2;
+        }else{
+            minX=mouse_x2; maxX = mouse_x1;
+        }
+        if(mouse_y1<mouse_y2){
+            minY=mouse_y1; maxY = mouse_y2;
+        }else{
+            minY=mouse_y2; maxY = mouse_y1;
+        }
+        
+        minReNew = minRe + minX / csw * (maxRe - minRe);
+        maxReNew = minRe + maxX / csw * (maxRe - minRe);
+        minImNew = maxIm - maxY / csh * (maxIm - minIm);
+        maxImNew = maxIm - minY / csh * (maxIm - minIm);
+        minRe = minReNew;
+        maxRe = maxReNew;
+        minIm = minImNew;
+        maxIm = maxImNew;
+        
+        subAreaSelected1 = false;
+        subAreaSelected2 = false;
+        writeReIm();
+        
+    }
 }

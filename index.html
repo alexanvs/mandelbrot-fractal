@@ -20,9 +20,44 @@
         <button onclick="changeIterations(1)">+1</button>
         <button onclick="changeIterations(-1)">-1</button>
 
-        <button onclick="calculateAndDraw()">Generate!</button><br />
+        <button onclick="calculateAndDraw()">Generate!</button>
+        
+             <!-- X_resolution:
+             <input name="x_res" id="x_res" type="text" size="4" 
+             onkeyup="if (event.keyCode == 13) { submit(); return false; }">
+             Y_resolution:
+             <input name="y_res" id="y_res" type="text" size="4" 
+             onkeyup="if (event.keyCode == 13) { submit(); return false; }"> -->
+             <!-- <input name ="ymax" id="ymax" type="text" size=4
+                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }"> -->
+             <!-- working variant: -->
+             <!-- <FORM onsubmit="return changeXmax(xmax.value)">
+                <input name ="xmax" type="text">
+                <p><input type="submit" value="Submit Xmax"></p>
+             </FORM> -->
 
-        <canvas id="canvas">
+              <!-- working variant: -->
+              <!-- <FORM onsubmit="return changeXYmax(xmax.value)">
+                <input name ="xmax" type="text" size=4
+                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }">
+             </FORM> -->
+             Max Resolution:
+             <form id="x_form" style="display:inline">
+                x: <input name ="xmax" type="text" size="4" />
+                y: <input name ="ymax" type="text" size="4" />
+                <input type="submit" style="position: absolute; left: -9999px; width: 1px; height: 1px;"/>
+             </form>
+
+             <!--FORM onsubmit="return changeYmax(ymax.value)" style="display:inline">
+                <input name ="ymax" type="text" size=4
+                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }">
+             </FORM-->
+             
+                
+             
+
+        <br />
+        <canvas id="canvas" width="900" height="600" >
             This text is displayed if your browser does not support HTML5 Canvas.
         </canvas>
         <script type='text/javascript' src='script.js'></script>
