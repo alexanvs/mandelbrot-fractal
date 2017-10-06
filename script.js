@@ -6,15 +6,21 @@
  * http://www.eclipse.org/legal/epl-v10.html
  */
 
+var MyMouseCoords = function constructor() {
+    this['x'] = arguments[0];
+    this['y'] = arguments[1];
+}
+
 var canvas = document.getElementById('canvas');
-var context = canvas.getContext("2d");
+var context = canvas.getContext('2d');
+
 
 canvas.addEventListener('mousedown', onDown, false);
 canvas.addEventListener('mouseup', onUp, false);
 canvas.addEventListener('dblclick', onDblclick, false);
 canvas.addEventListener('mousemove', onMousemove, false);
 
-var mouse_x1, mouse_y1, mouse_x2, mouse_y2;
+var mouse_x2, mouse_y2;
 var subAreaSelected1 = false;
 
 var x,y;
@@ -30,6 +36,7 @@ var deltaIm = 2.3  ;
 // var maxRe = 0.6;
 // var minIm = -1.15;
 // var maxIm = 1.15;
+
 
 var minRe = lookAroundRe-deltaRe/2;
 var maxRe = lookAroundRe+deltaRe/2;
@@ -260,32 +267,37 @@ function changeIterations(i){
 
 function onDown(event){
     event = event || window.event;
-    mouse_x1 = event.pageX - canvas.offsetLeft;
-    mouse_y1 = event.pageY - canvas.offsetTop;
-    console.log(mouse_x1,mouse_y1);
+    var orig_x1 = event.pageX - canvas.offsetLeft;
+    var orig_y1 = event.pageY - canvas.offsetTop;
+    console.log("mouseDown: x="+orig_x1+", y="+orig_y1);
     subAreaSelected1 = true;
+    event.target._mouseDown = new MyMouseCoords(orig_x1, orig_y1);
 }
-function onUp(event){
+
+function onUp(event) {
+    var orig_x1 = event.target._mouseDown.x;
+    var orig_y1 = event.target._mouseDown.y;
     event = event || window.event;
-    mouse_x2 = event.pageX - canvas.offsetLeft;
-    mouse_y2 = event.pageY - canvas.offsetTop;
+    var mouse_x2 = event.pageX - canvas.offsetLeft;
+    var mouse_y2 = event.pageY - canvas.offsetTop;
     var minReNew, maxReNew, minImNew, maxImNew;
     var minX,maxX,minY,maxY;
 
-    console.log("mouse: ",mouse_x1,mouse_y1,mouse_x2,mouse_y2);
-    console.log(mouse_x2,mouse_y2);
-    if(subAreaSelected1 && mouse_x1 != mouse_x2 && mouse_y1 != mouse_y2){
-       
-
-        if(mouse_x1<mouse_x2){
-            minX=mouse_x1; maxX = mouse_x2;
-        }else{
-            minX=mouse_x2; maxX = mouse_x1;
+    console.log("mouseUp: (x="+orig_x1+", y="+orig_y1+"), (x="+mouse_x2+", y="+mouse_y2+")");
+    if (subAreaSelected1 && orig_x1 != mouse_x2 && orig_y1 != mouse_y2) {
+        if (orig_x1 < mouse_x2){
+            minX = orig_x1; 
+            maxX = mouse_x2;
+        } else {
+            minX = mouse_x2; 
+            maxX = orig_x1;
         }
-        if(mouse_y1<mouse_y2){
-            minY=mouse_y1; maxY = mouse_y2;
-        }else{
-            minY=mouse_y2; maxY = mouse_y1;
+        if (orig_y1 < mouse_y2){
+            minY = orig_y1; 
+            maxY = mouse_y2;
+        } else {
+            minY = mouse_y2; 
+            maxY = orig_y1;
         }
         
         minReNew = minRe + minX / csw * (maxRe - minRe);
