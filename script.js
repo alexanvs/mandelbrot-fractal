@@ -6,34 +6,35 @@
  * http://www.eclipse.org/legal/epl-v10.html
  */
 
-
-
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext("2d");
 
 canvas.addEventListener('mousedown', onDown, false);
 canvas.addEventListener('mouseup', onUp, false);
 canvas.addEventListener('dblclick', onDblclick, false);
+canvas.addEventListener('mousemove', onMousemove, false);
 
 var mouse_x1, mouse_y1, mouse_x2, mouse_y2;
 var subAreaSelected1 = false;
-var subAreaSelected2 = false;
-
-
 
 var x,y;
 var re,im,re1,im1,re1tmp;
 
-var lookAroundRe = -0.5;
+var lookAroundRe = -0.8;
 var lookAroundIm = 0;
 
-//var deltaRe =       0.00001;
-//var deltaIm =       0.00001;
+var deltaRe = 3.45  ;
+var deltaIm = 2.3  ;
 
-var minRe = -2.1;//lookAroundRe-deltaRe/2;
-var maxRe = 0.6;//lookAroundRe+deltaRe/2;
-var minIm = -1.15;//lookAroundIm-deltaIm/2;
-var maxIm = 1.15;//lookAroundIm+deltaIm/2;
+// var minRe = -2.1;
+// var maxRe = 0.6;
+// var minIm = -1.15;
+// var maxIm = 1.15;
+
+var minRe = lookAroundRe-deltaRe/2;
+var maxRe = lookAroundRe+deltaRe/2;
+var minIm = lookAroundIm-deltaIm/2;
+var maxIm = lookAroundIm+deltaIm/2;
 
 function writeReIm(){
     document.getElementById("minre").innerHTML =  minRe;
@@ -46,12 +47,13 @@ writeReIm();
 canvas.width = 1200;
 canvas.height = 800;
 
-
-var csw=900;  //canvas style width
-var csh=600;  //canvas style height
+const cswmax=900, cshmax=900;
+var csw=cswmax;  //canvas style width
+var csh=cshmax;  //canvas style height
 canvas.style.width = csw + 'px';
 canvas.style.height = csh + 'px';
 adjustCanvasSize();
+
 console.log(canvas.width, canvas.height);
 var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 var data = imageData.data;
@@ -71,28 +73,85 @@ form.elements.xmax.value = canvas.width;
 form.elements.ymax.value = canvas.height;
 form.addEventListener("submit", function(event) {
     changeXYmax(form.elements.xmax.value, form.elements.ymax.value);
- //   changeYmax(form.elements.ymax.value);
     event.preventDefault();
 });
 
 var xMaxRes,yMaxRes;
 function changeXYmax(x,y){
+    if(x==0 || y==0){
+        alert("x, y must be not zero");
+        x=1200;
+        y=800;
+        form.elements.xmax.value = x;
+        form.elements.ymax.value = y;
+    }
     xMaxRes = x;
     yMaxRes = y;
     canvas.width = x;
     canvas.height = y;
+    adjustCanvasSize();
     imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     data = imageData.data;
     console.log("xmax="+ xMaxRes);
-    console.log("ymax="+ yMaxRes);
+    console.log("ymax="+ yMaxRes);   
 }
 
-// function changeYmax(value){
-//     canvas.height = value;
-//     imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-//     data = imageData.data;
-// }
+function applyNewRatio(){
+    canvas.width = xMaxRes;
+    canvas.height = yMaxRes;
+    document.getElementById("xres").innerHTML =  canvas.width;
+    document.getElementById("yres").innerHTML =  canvas.height;
+    var canvasRatio = xMaxRes / yMaxRes;
+    var dre = maxRe - minRe;
+    var dim = maxIm - minIm;
+    var cre = minRe + dre/2;
+    var cim = minIm + dim/2;
+    var reImRatio = dre/dim;
+    if(canvasRatio > reImRatio){
+        var dreNew = dim * canvasRatio;
+        minRe = cre - dreNew/2;
+        maxRe = cre + dreNew/2;
+    }else if(canvasRatio < reImRatio){
+        var dimNew = dre / canvasRatio;
+        minIm = cim - dimNew/2;
+        maxIm = cim + dimNew/2;
+    }
+    var canvasStyleRatio = cswmax / cshmax;
+    if(canvasRatio > canvasStyleRatio){
+        csw = cswmax;
+        csh = csw/canvasRatio;
+    } else {
+        csh = cshmax;
+        csw = csh * canvasRatio;
+    }
+    canvas.style.width = csw + 'px';
+    canvas.style.height = csh + 'px';
+    imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    data = imageData.data;
+}
 
+function adjustCanvasSize(){
+    var ratio = (maxRe - minRe) / (maxIm - minIm);
+    if (xMaxRes / yMaxRes > ratio){
+        canvas.height = yMaxRes;
+        canvas.width = Math.round(canvas.height * ratio);
+    } else if (xMaxRes / yMaxRes < ratio){
+        canvas.width = xMaxRes;
+        canvas.height = Math.round(canvas.width / ratio);
+    }
+    if(cswmax / cshmax > ratio){
+        csh = cshmax;
+        csw = Math.round(cshmax * ratio);
+    } else {
+        csw = cswmax;
+        csh = Math.round(cswmax / ratio);
+    }
+    canvas.style.width = csw + 'px';
+    canvas.style.height = csh + 'px';
+    document.getElementById("xres").innerHTML =  canvas.width;
+    document.getElementById("yres").innerHTML =  canvas.height;
+    console.log("after adjust: csw = "+csw+ " csh="+ csh);
+}
 
 function draw(){
     context.putImageData(imageData, 0, 0);
@@ -103,23 +162,6 @@ function calculateAndDraw(){
     draw();
 }
 
-
-
-function adjustCanvasSize(){
-    var ratio = (maxRe - minRe) / (maxIm - minIm);
-    if (canvas.width / canvas.height > ratio){
-        canvas.width = Math.round(canvas.height * ratio);
-    } else if (canvas.width / canvas.height < ratio){
-        canvas.height = Math.round(canvas.width / ratio);
-    }
-    if(csw / csh > ratio){
-        csw = Math.round(csh * ratio);
-        canvas.style.width = csw + 'px';
-    } else if (canvas.style.width / canvas.style.height < ratio){
-        csh = Math.round(csw / ratio);
-        canvas.style.height = csw + 'px';
-    }
-}
 
 
 function approxEq(x,y){
@@ -230,9 +272,10 @@ function onUp(event){
     var minReNew, maxReNew, minImNew, maxImNew;
     var minX,maxX,minY,maxY;
 
+    console.log("mouse: ",mouse_x1,mouse_y1,mouse_x2,mouse_y2);
     console.log(mouse_x2,mouse_y2);
     if(subAreaSelected1 && mouse_x1 != mouse_x2 && mouse_y1 != mouse_y2){
-        subAreaSelected2 = true;
+       
 
         if(mouse_x1<mouse_x2){
             minX=mouse_x1; maxX = mouse_x2;
@@ -255,8 +298,12 @@ function onUp(event){
         maxIm = maxImNew;
         
         subAreaSelected1 = false;
-        subAreaSelected2 = false;
+       
         writeReIm();
+        adjustCanvasSize();
+        imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        data = imageData.data;
+        calculateAndDraw();
         
     }
 }
@@ -280,4 +327,14 @@ function onDblclick(event){
     maxIm = im + dImZoomHalf;
     writeReIm();
     calculateAndDraw();
+}
+
+function onMousemove(event){
+    event = event || window.event;
+    var mouse_x = event.pageX - canvas.offsetLeft;
+    var mouse_y = event.pageY - canvas.offsetTop;
+    re = minRe + mouse_x / csw * (maxRe - minRe);
+    im = maxIm - mouse_y / csh * (maxIm - minIm);
+    document.getElementById("mouseX").innerHTML =  re;
+    document.getElementById("mouseY").innerHTML =  im;
 }

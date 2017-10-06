@@ -5,12 +5,13 @@
         <link rel='stylesheet' type='text/css' href='stylesheet.css'/>
     </head>
     <body>
-        Iterations: <div id="iters" style="display:inline">???</div>&emsp;
+        <button onclick="calculateAndDraw()">Generate!</button>
         Real range: <div id="minre" style="display:inline">???</div>...
-                    <div id="maxre" style="display:inline">???</div>&emsp;
+        <div id="maxre" style="display:inline">???</div>&emsp;
         Imaginary range: <div id="minim" style="display:inline">???</div>...
-                         <div id="maxim" style="display:inline">???</div>
+        <div id="maxim" style="display:inline">???</div>
         <br />
+        
         Adjust Iterations:
         <button onclick="updateIterations(200)">200</button>
         <button onclick="updateIterations(500)">500</button>
@@ -19,28 +20,14 @@
         <button onclick="changeIterations(-50)">-50</button>
         <button onclick="changeIterations(1)">+1</button>
         <button onclick="changeIterations(-1)">-1</button>
+        Iterations: <div id="iters" style="display:inline">???</div><br />
+        Current mouse position: x:<div id="mouseX" style="display:inline">???</div>
+                                y:<div id="mouseY" style="display:inline">???</div>
+        <br />
 
-        <button onclick="calculateAndDraw()">Generate!</button>
-        
-             <!-- X_resolution:
-             <input name="x_res" id="x_res" type="text" size="4" 
-             onkeyup="if (event.keyCode == 13) { submit(); return false; }">
-             Y_resolution:
-             <input name="y_res" id="y_res" type="text" size="4" 
-             onkeyup="if (event.keyCode == 13) { submit(); return false; }"> -->
-             <!-- <input name ="ymax" id="ymax" type="text" size=4
-                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }"> -->
-             <!-- working variant: -->
-             <!-- <FORM onsubmit="return changeXmax(xmax.value)">
-                <input name ="xmax" type="text">
-                <p><input type="submit" value="Submit Xmax"></p>
-             </FORM> -->
-
-              <!-- working variant: -->
-              <!-- <FORM onsubmit="return changeXYmax(xmax.value)">
-                <input name ="xmax" type="text" size=4
-                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }">
-             </FORM> -->
+        Current resolution: x:<div id="xres" style="display:inline">???</div>
+                            y:<div id="yres" style="display:inline">???</div>
+                            &emsp;
              Max Resolution:
              <form id="xy_form" style="display:inline">
                 x: <input name ="xmax" type="text" size="4" />
@@ -48,14 +35,7 @@
                 <input type="submit" style="position: absolute; left: -9999px; width: 1px; height: 1px;"/>
              </form>
 
-             <!--FORM onsubmit="return changeYmax(ymax.value)" style="display:inline">
-                <input name ="ymax" type="text" size=4
-                onkeyup="if (event.keyCode == 13) { this.form.submit(); return false; }">
-             </FORM-->
-             
-                
-             
-
+             <button onclick="applyNewRatio()">Apply new ratio</button>
         <br />
         <canvas id="canvas" width="900" height="600" >
             This text is displayed if your browser does not support HTML5 Canvas.
