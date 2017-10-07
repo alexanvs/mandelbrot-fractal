@@ -11,6 +11,15 @@ var MyMouseCoords = function constructor() {
     this['y'] = arguments[1];
 }
 
+var CanvasState = function constructor() {
+    this['minRe'] = arguments[0];
+    this['maxRe'] = arguments[1];
+    this['minIm'] = arguments[2];
+    this['maxIm'] = arguments[3];
+}
+
+var canvasStates = [];
+
 var canvas = document.getElementById('canvas');
 var context = canvas.getContext('2d');
 
@@ -20,7 +29,7 @@ canvas.addEventListener('mouseup', onUp, false);
 canvas.addEventListener('dblclick', onDblclick, false);
 canvas.addEventListener('mousemove', onMousemove, false);
 
-var mouse_x2, mouse_y2;
+
 var subAreaSelected1 = false;
 
 var x,y;
@@ -55,6 +64,8 @@ canvas.width = 1200;
 canvas.height = 800;
 
 const cswmax=900, cshmax=900;
+var xMaxRes=canvas.width;
+var yMaxRes=canvas.height;
 var csw=cswmax;  //canvas style width
 var csh=cshmax;  //canvas style height
 canvas.style.width = csw + 'px';
@@ -67,11 +78,17 @@ var data = imageData.data;
 
 
 var maxIter = 200;
+var iterLimit = 2000;
 var iterChanged = true;
 document.getElementById("iters").innerHTML =  maxIter;
-var paletteR = new Array(1000);
-var paletteG = new Array(1000);
-var paletteB = new Array(1000);
+var paletteR = new Array(iterLimit);
+var paletteG = new Array(iterLimit);
+var paletteB = new Array(iterLimit);
+const maxColors=16777216;
+var smoothPaletteR = new Array(maxColors);
+var smoothPaletteG = new Array(maxColors);
+var smoothPaletteB = new Array(maxColors);
+
 var drawMap = false;
 
 
@@ -83,7 +100,6 @@ form.addEventListener("submit", function(event) {
     event.preventDefault();
 });
 
-var xMaxRes,yMaxRes;
 function changeXYmax(x,y){
     if(x==0 || y==0){
         alert("x, y must be not zero");
@@ -157,7 +173,7 @@ function adjustCanvasSize(){
     canvas.style.height = csh + 'px';
     document.getElementById("xres").innerHTML =  canvas.width;
     document.getElementById("yres").innerHTML =  canvas.height;
-    console.log("after adjust: csw = "+csw+ " csh="+ csh);
+    console.log("after adjust: csw = "+csw+ " csh = "+ csh);
 }
 
 function draw(){
@@ -169,23 +185,52 @@ function calculateAndDraw(){
     draw();
 }
 
+calculateAndDraw();
 
 
-function approxEq(x,y){
-    var melkFaktor = (maxRe-minRe)/1000;
-    if (y>x-melkFaktor && y<x+melkFaktor){
-        return true;
-    }
-    return false;
-}
 
-function generatePalette(colors){
-    for (var i = 0; i < colors; i++){
-        var x = i/(colors-1) * 2 * Math.PI;
-        paletteG[i] = Math.round(255 * (Math.cos(x*3.5) + 1) / 2);
-        paletteB[i] = Math.round(255 * (Math.cos(x*1.5) + 1) / 2);
-        paletteR[i] = Math.round(255 * (Math.cos(x*2.5) + 1) / 2);
-    }
+function generatePalette(colors, paletteNum){
+    if(paletteNum == null) paletteNum = 0; // default
+    switch(paletteNum) {
+
+        case 1:   // Black and white
+            for (var i = 0; i < colors; i++){
+                var factor = Math.sqrt(i / (colors-1));
+                var intensity = Math.round((colors-1) * factor);
+                paletteG[i] = Math.round(255*intensity/(colors-1));
+                paletteB[i] = Math.round(255*intensity/(colors-1));
+                paletteR[i] = Math.round(255*intensity/(colors-1));
+            }
+            paletteR[colors-1]=0;
+            paletteG[colors-1]=0;
+            paletteB[colors-1]=0;
+            break;
+
+        case 2:
+            for (var i = 0; i < colors; i++){
+                var factor = Math.sqrt(i / (colors-1));
+                var intensity = Math.round((colors-1) * factor);
+                var x = intensity/(colors-1) * 2 * Math.PI;
+                paletteG[i] = Math.round(255 * (Math.cos(x*3.5) + 1) / 2);
+                paletteB[i] = Math.round(255 * (Math.cos(x*1.5) + 1) / 2);
+                paletteR[i] = Math.round(255 * (Math.cos(x*2.5) + 1) / 2);
+            }            
+            break;   
+
+        default:
+            for (var i = 0; i < colors; i++){
+                var x = i/(colors-1) * 2 * Math.PI;
+                paletteG[i] = Math.round(255 * (Math.cos(x*3.5) + 1) / 2);
+                paletteB[i] = Math.round(255 * (Math.cos(x*1.5) + 1) / 2);
+                paletteR[i] = Math.round(255 * (Math.cos(x*2.5) + 1) / 2);
+            }     
+            for (var i = 0; i < maxColors; i++){
+                var x = i/(maxColors-1) * 2 * Math.PI;
+                smoothPaletteG[i] = Math.round(255 * (Math.cos(x*3.5) + 1) / 2);
+                smoothPaletteB[i] = Math.round(255 * (Math.cos(x*1.5) + 1) / 2);
+                smoothPaletteR[i] = Math.round(255 * (Math.cos(x*2.5) + 1) / 2);
+            }       
+    }    
 }
 
 
@@ -195,34 +240,47 @@ function calculateImage(){
         iterChanged = false;
     }
     for (var i = 0; i < data.length; i += 4) {
-        x = (i/4)%canvas.width;
-        y = Math.floor((i/4)/canvas.width);
-        re = minRe + x/canvas.width * (maxRe - minRe);
-        im = maxIm - y/canvas.height * (maxIm - minIm);
-        re1=re;
-        im1=im;
-        var t=re-0.25;
+        var x = (i/4)%canvas.width;
+        var y = Math.floor((i/4)/canvas.width);
+        var re = minRe + x/canvas.width * (maxRe - minRe);
+        var im = maxIm - y/canvas.height * (maxIm - minIm);
+        var re1 = re;
+        var im1 = im;
+        var t = re-0.25;
         var imsq = im * im;
-        var q=t*t + imsq;
-        var iter=0;
-        if( ( (q * (q + t) < 0.25 * imsq) || ((re+1)*(re+1) + im*im < 0.0625) ) ){
+        var q = t*t + imsq;
+        var iter = 0;
+        var nsmooth = 0;
+        if( q * (q + t) < 0.25 * imsq || (re+1)*(re+1) + im*im < 0.0625 ){
             /* Optimization */
             iter = maxIter-1;
+            nsmooth = maxColors-1;
         } else {
             while(true){ 
                 re1tmp = re1;
-                re1= re1 * re1 - im1 * im1 + re;
+                re1re1=re1*re1;
+                im1im1=im1*im1;
+                re1= re1re1 - im1im1 + re;
                 im1 = 2*re1tmp*im1 + im;
-                if(Math.abs(re1) + Math.abs(im1) > 5) break;
+                //if(Math.abs(re1) + Math.abs(im1) > 5) break;
+                if(re1re1 + im1im1 > 4)break;
                 if(iter==maxIter-1)break;
                 iter++;
             }
+            nsmooth = iter + 1 - Math.log(Math.log(Math.sqrt(re1re1+im1im1)))/Math.log(2);
         }
 
-        data[i]     = paletteR[iter] ; // red
-        data[i + 1] = paletteG[iter] ; // green
-        data[i + 2] = paletteB[iter] ; // blue
+        // data[i]     = paletteR[iter] ; // red
+        // data[i + 1] = paletteG[iter] ; // green
+        // data[i + 2] = paletteB[iter] ; // blue
+        // data[i+3]=255;
+        var indexSmooth = Math.round(nsmooth/(maxIter-1)*(maxColors-1));
+        data[i]     = smoothPaletteR[indexSmooth] ; // red
+        data[i + 1] = smoothPaletteG[indexSmooth] ; // green
+        data[i + 2] = smoothPaletteB[indexSmooth] ; // blue
         data[i+3]=255;
+
+
         
        /* Drawing net map */
         if(drawMap){
@@ -242,12 +300,20 @@ function calculateImage(){
     }
 }
 
+function approxEq(x,y){
+    var melkFaktor = (maxRe-minRe)/1000;
+    if (y>x-melkFaktor && y<x+melkFaktor){
+        return true;
+    }
+    return false;
+}
+
 function updateIterations(i){
     var tmpIter = maxIter;
     if (i<1) {
         maxIter = 1;
-    } else if (i>1000) {
-        maxIter = 1000;
+    } else if (i>iterLimit) {
+        maxIter = iterLimit;
     } else {
         maxIter = i;
     }
@@ -259,6 +325,7 @@ function updateIterations(i){
     }
     console.log(maxIter);
     document.getElementById("iters").innerHTML =  maxIter;
+    return iterChanged;
 }
 
 function changeIterations(i){
@@ -269,37 +336,38 @@ function onDown(event){
     event = event || window.event;
     var orig_x1 = event.pageX - canvas.offsetLeft;
     var orig_y1 = event.pageY - canvas.offsetTop;
-    console.log("mouseDown: x="+orig_x1+", y="+orig_y1);
+    console.log("mouseDown: "+orig_x1+" "+orig_y1);
     subAreaSelected1 = true;
     event.target._mouseDown = new MyMouseCoords(orig_x1, orig_y1);
 }
 
 function onUp(event) {
-    var orig_x1 = event.target._mouseDown.x;
-    var orig_y1 = event.target._mouseDown.y;
     event = event || window.event;
-    var mouse_x2 = event.pageX - canvas.offsetLeft;
-    var mouse_y2 = event.pageY - canvas.offsetTop;
+    var down_x = event.target._mouseDown.x;
+    var down_y = event.target._mouseDown.y;
+    var up_x = event.pageX - canvas.offsetLeft;
+    var up_y = event.pageY - canvas.offsetTop;
     var minReNew, maxReNew, minImNew, maxImNew;
     var minX,maxX,minY,maxY;
 
-    console.log("mouseUp: (x="+orig_x1+", y="+orig_y1+"), (x="+mouse_x2+", y="+mouse_y2+")");
-    if (subAreaSelected1 && orig_x1 != mouse_x2 && orig_y1 != mouse_y2) {
-        if (orig_x1 < mouse_x2){
-            minX = orig_x1; 
-            maxX = mouse_x2;
+    console.log("mouseUp: "+up_x+" "+up_y);
+    if (subAreaSelected1 && down_x != up_x && down_y != up_y) {
+        if (down_x < up_x){
+            minX = down_x; 
+            maxX = up_x;
         } else {
-            minX = mouse_x2; 
-            maxX = orig_x1;
+            minX = up_x; 
+            maxX = down_x;
         }
-        if (orig_y1 < mouse_y2){
-            minY = orig_y1; 
-            maxY = mouse_y2;
+        if (down_y < up_y){
+            minY = down_y; 
+            maxY = up_y;
         } else {
-            minY = mouse_y2; 
-            maxY = orig_y1;
+            minY = up_y; 
+            maxY = down_y;
         }
-        
+        canvasStates.push(new CanvasState(minRe, maxRe, minIm, maxIm));
+        console.log("Saved Re="+minRe+"..."+maxRe+" Im="+minIm+"..."+maxIm);
         minReNew = minRe + minX / csw * (maxRe - minRe);
         maxReNew = minRe + maxX / csw * (maxRe - minRe);
         minImNew = maxIm - maxY / csh * (maxIm - minIm);
@@ -325,6 +393,8 @@ function onDblclick(event){
     var mouse_y = event.pageY - canvas.offsetTop;
     console.log("dblclick" + mouse_x + mouse_y);
     var zoom=4;
+    canvasStates.push(new CanvasState(minRe, maxRe, minIm, maxIm));
+    console.log("Saved Re="+minRe+"..."+maxRe+" Im="+minIm+"..."+maxIm);
     var dRe = maxRe - minRe;
     var dIm = maxIm - minIm;
     var dReZoomHalf = 0.5*dRe/zoom;
@@ -338,6 +408,24 @@ function onDblclick(event){
     minIm = im - dImZoomHalf;
     maxIm = im + dImZoomHalf;
     writeReIm();
+    calculateAndDraw();
+}
+
+function goBack(){
+    if (canvasStates.length == 0){
+        alert("This is already the first image.");
+        return;
+    }
+    var previousState = canvasStates.pop();
+    minRe = previousState.minRe;
+    maxRe = previousState.maxRe;
+    minIm = previousState.minIm;
+    maxIm = previousState.maxIm;
+    console.log("Popped Re="+minRe+"..."+maxRe+" Im="+minIm+"..."+maxIm);
+    writeReIm();
+    adjustCanvasSize();
+    imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    data = imageData.data;
     calculateAndDraw();
 }
 

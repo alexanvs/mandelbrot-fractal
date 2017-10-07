@@ -25,8 +25,8 @@
                                 y:<div id="mouseY" style="display:inline">???</div>
         <br />
 
-        Current resolution: x:<div id="xres" style="display:inline">???</div>
-                            y:<div id="yres" style="display:inline">???</div>
+        Current resolution: Re:<div id="xres" style="display:inline">???</div>
+                            Im:<div id="yres" style="display:inline">???</div>
                             &emsp;
              Max Resolution:
              <form id="xy_form" style="display:inline">
@@ -36,6 +36,7 @@
              </form>
 
              <button onclick="applyNewRatio()">Apply new ratio</button>
+             <button onclick="goBack()">Back</button>
         <br />
         <canvas id="canvas" width="900" height="600" >
             This text is displayed if your browser does not support HTML5 Canvas.
